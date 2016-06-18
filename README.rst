@@ -77,9 +77,9 @@ Launch machine, take a screen shot, stop machine::
 
     In [5]: progress = vm.launch_vm_process(session, 'gui', '')
 
-    In [6]: h, w, _, _, _ = session.console.display.get_screen_resolution(0)
+    In [6]: h, w, _, _, _, _ = session.console.display.get_screen_resolution(0)
 
-    In [7]: png = session.console.display.take_screen_shot_png_to_array(0, h, w)
+    In [7]: png = session.console.display.take_screen_shot_to_array(0, h, w, virtualbox.library.BitmapFormat.png)
 
     In [8]: with open('screenshot.png', 'wb') as f:
       ....:     f.write(png)
@@ -222,79 +222,7 @@ Compatibility
 underlying COM API primitives.  Therefore, pyvbox is compatible on systems
 which have a running vboxapi.
 
-Change log
-==========
 
-version 0.1.4 (09/04/2014)
- 
- * Fixed bug in error class container.
-
-version 0.1.3 (04/03/2014)
-
- * Bug fix for API support.
- * Added markup generation to library documentation.
- * Improved Manager bootstrap design.
- * Py3 compatibility (although vboxapi does not support py3).
-
-version 0.1.2 (28/02/2014)
-
-* Bug fix for virtualenv support
-* `Keyboard scancode decoder`_ (Note: coded in the delivery suite on the day of
-  the birth of my baby girl Sophia.)
-* Refactored documentation
-
-version 0.1.1 (17/02/2014)
-
-* Minor improvements
-* Additional extensions
-* virtualenv support
-
-version 0.1   (05/01/2014)
-
-* As per roadmap v0.1
-* type checking baseinteger 
-* update to latests Xidl 
-
-version 0.0.7 (09/10/2013)
-
-* `machine pool`_
-
-version 0.0.6 (25/07/2013)
-
-* now with `event support`_
-
-version 0.0.5 (23/07/2013)
-
-* moved manage into library_ext Interfaces
-* made library.py compatible with differences found between xpcom and COM
-  (Linux Vs Windows)
-
-version 0.0.4 (27/06/2013)
-
-* added execute, context, and keyboard
-
-version 0.0.3 (30/05/2012)
-
-* added manage
-
-version 0.0.2 (28/05/2013)
-
-* `library ext module`_
-
-version 0.0.1 (27/05/2013)
-
-* packaged
-
-version 0.0.0 (20/05/2013)
-
-* builder 
-* library primitives 
-
-
-.. _event support: http://pythonhosted.org//pyvbox/virtualbox/events.html
-.. _library ext module: http://pythonhosted.org/pyvbox/virtualbox/library_ext.html
-.. _machine pool: http://pythonhosted.org/pyvbox/virtualbox/pool.html
-.. _Keyboard scancode decoder: https://gist.github.com/mjdorma/9132605
 .. _gist: https://gist.github.com/mjdorma
 .. _pythonhosted.org: http://pythonhosted.org/pyvbox/
 .. _github.com: https://github.com/mjdorma/pyvbox

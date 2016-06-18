@@ -11,6 +11,10 @@ from virtualbox import library
 Add helper code to the default IMachine class.
 """
 
+try:
+    basestring = basestring
+except:
+    basestring = (str, bytes)
 
 # Extend and fix IMachine :) 
 class IMachine(library.IMachine):
@@ -29,7 +33,7 @@ class IMachine(library.IMachine):
         """
         if self.state >= library.MachineState.running:
             session = virtualbox.Session()
-            self.lock_machine(session, LockType.shared)
+            self.lock_machine(session, library.LockType.shared)
             try:
                 progress = session.console.power_down()
                 progress.wait_for_completion(-1)
@@ -52,8 +56,9 @@ class IMachine(library.IMachine):
             progress.wait_for_completion(-1)
             media = []
         
-        # if delete - let's remove the settings folder too
-        if delete:
+        # if delete - At some point in time virtualbox didn't do a full cleanup 
+        #             of this dir. Let's double check it has been cleaned up.
+        if delete and os.path.exists(settings_dir):
             shutil.rmtree(settings_dir)
 
         return media
@@ -82,7 +87,7 @@ class IMachine(library.IMachine):
         vbox = virtualbox.VirtualBox()
 
         if snapshot_name_or_id is not None:
-            if snapshot_name_or_id in [str, unicode]:
+            if isinstance(snapshot_name_or_id, basestring):
                 snapshot = self.find_snapshot(snapshot_name_or_id)
             else:
                 snapshot = snapshot_name_or_id
@@ -183,9 +188,19 @@ class IMachine(library.IMachine):
             raise TypeError(msg)
         if not isinstance(location, basestring):
             raise TypeError("value is not an instance of basestring")
-        description = self._call("export",
+        # see https://github.com/mjdorma/pyvbox/issues/40
+        description = self._call("exportTo",
                      in_p=[appliance, location])
         description = library.IVirtualSystemDescription(description)
         return description
     export_to.__doc__ = library.IMachine.export_to.__doc__
 
+    #if no snapshot has been supplied, try using the current_snapshot
+    def restore_snapshot(self, snapshot=None):
+        if snapshot is None:
+            if self.machine.current_snapshot:
+                snapshot = self.machine.current_snapshot
+            else:
+                raise Exception("Machine has no snapshots")
+        return super(IMachine, self).restore_snapshot(snapshot)
+    restore_snapshot.__doc__ = library.IMachine.restore_snapshot.__doc__

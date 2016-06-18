@@ -4,13 +4,14 @@
 import re
 import inspect
 import sys
+import platform
+import time
 
 # Py2 and Py3 compatibility  
 try:
     import __builtin__ as builtin 
 except:
     import builtins as builtin
-
 
 def pythonic_name(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
@@ -25,8 +26,8 @@ class EnumType(type):
     the Enum class object's values defined in Enum.lookup_label"""
     def __init__(cls, name, bases, dct):
         cls._value = None
-        cls._lookup_label = {v:l for l, v, _ in cls._enums}
-        cls._lookup_doc = {v:d for _, v, d in cls._enums}
+        cls._lookup_label = dict((v, l) for l, v, _ in cls._enums)
+        cls._lookup_doc = dict((v, d) for _, v, d in cls._enums)
         for l, v, _ in cls._enums:
             setattr(cls, pythonic_name(l), cls(v))
 
@@ -78,7 +79,7 @@ class Enum(object):
         return self.__cmp__(k) == 0
 
     def __cmp__(self, k):
-        return cmp(int(self), int(k))
+        return (int(self) > int(k)) - (int(self) < int(k))
 
     def __getitem__(self, k):
         return self.__class__[k]
@@ -131,13 +132,23 @@ class Interface(object):
             return cast_to_valuetype(value)
 
     def _search_attr(self, name, prefix=None):
-        attr_name = name
-        attr = getattr(self._i, attr_name, None)
-        # if a prefix is defined, try to get that prefixed name and use that
-        # attribute instead, else, stick with the attr value pulled out above
+        attr_names = [name]
         if prefix is not None:
-            prefix_name = prefix + name[0].upper() + name[1:]
-            attr = getattr(self._i, prefix_name, attr)
+            attr_names.append(prefix + name[0].upper() + name[1:])
+        # Sometimes xpcom interface fails to return the attribute.  Check a few
+        # times before giving up.
+        for i in range(3):
+            for attr_name in attr_names:
+                attr = getattr(self._i, attr_name, self)
+                if attr is not self:
+                    break 
+            else:
+                # Failed to get attribute, do a quick sleep and try again.
+                time.sleep(0.1)
+                continue
+            break
+        else:
+            raise AttributeError("Failed to find attribute %s in %s" % (name, self))
         return attr
 
     def _get_attr(self, name):
@@ -175,10 +186,15 @@ class Interface(object):
             errobj.value = errno
             # TODO: Is this the only way to get a message from exc... 
             #       does this also vary between nix vs windows.
-            if hasattr(exc, 'args'):
-                errobj.msg = exc.args[2][2]
-            else:
-                errojb.msg = getattr(exc, 'msg', getattr(exc, 'message'))
+            errobj.msg = None
+            if platform.system() == 'Windows':
+                if hasattr(exc, 'args'):
+                    print(exc.args)
+                    errobj.msg = exc.args[2][2]
+	    # TODO: get the Linux/Darwin specific args struct
+
+            if errobj.msg is None:
+                errobj.msg = getattr(exc, 'msg', getattr(exc, 'message'))
             raise errobj
         return ret
 
